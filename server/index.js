@@ -3,36 +3,28 @@ import express from 'express';
 import cors from 'cors';
 import multer from 'multer';
 import dotenv from 'dotenv';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+// Note: GoogleGenerativeAI SDK is not used directly in favor of fetch to avoid environment compatibility issues.
 
 dotenv.config();
 
 const app = express();
+const PORT = 3000;
+
+// Middleware
 app.use(cors());
 app.use(express.json());
 
-// Set up Multer for memory storage
+// File upload setup (Memory storage)
 const upload = multer({ storage: multer.memoryStorage() });
-
-// Initialize Gemini API
-const genAI = new GoogleGenerativeAI((process.env.GEMINI_API_KEY || '').trim());
-
-const PORT = 3000;
 
 app.get('/', (req, res) => {
     res.send('Visa Genius Backend Running');
 });
 
-// Helper function to process file buffer for Gemini
-function fileToGenerativePart(buffer, mimeType) {
-    return {
-        inlineData: {
-            data: buffer.toString('base64'),
-            mimeType,
-        },
-    };
-}
-
+/**
+ * POST /api/analyze
+ * Endpoint to analyze visa profile and documents using Google Gemini AI.
+ */
 app.post('/api/analyze', upload.any(), async (req, res) => {
     try {
         const profile = req.body;
@@ -49,7 +41,7 @@ app.post('/api/analyze', upload.any(), async (req, res) => {
         console.log('Analyzing profile:', profile.name);
         console.log('Files received:', files.map(f => f.originalname));
 
-        // Prepare prompt
+        // Prepare Prompt
         const prompt = `
       You are an expert Visa Officer AI. Analyze the following visa application based on the profile details and the provided documents.
       
@@ -93,7 +85,7 @@ app.post('/api/analyze', upload.any(), async (req, res) => {
       Do not include markdown code blocks. Just the raw JSON string.
     `;
 
-        // Prepare parts for direct API call
+        // Prepare Payload for Gemini API
         const contents = [
             {
                 role: "user",
@@ -109,10 +101,12 @@ app.post('/api/analyze', upload.any(), async (req, res) => {
             }
         ];
 
-        const model = "gemini-flash-latest";
+        // API Configuration
+        const model = "gemini-flash-latest"; // Using verified model alias
         const apiKey = (process.env.GEMINI_API_KEY || '').trim();
         const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
 
+        // External API Call using fetch
         const response = await fetch(url, {
             method: 'POST',
             headers: {
@@ -127,6 +121,11 @@ app.post('/api/analyze', upload.any(), async (req, res) => {
         }
 
         const data = await response.json();
+
+        if (!data.candidates || data.candidates.length === 0) {
+            throw new Error('No analysis results returned from AI.');
+        }
+
         const text = data.candidates[0].content.parts[0].text;
 
         // Clean up response if it contains markdown code blocks
@@ -150,5 +149,5 @@ app.post('/api/analyze', upload.any(), async (req, res) => {
 });
 
 app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
+    console.log(`Visa Genius AI Server running on port ${PORT}`);
 });
