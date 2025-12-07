@@ -3,7 +3,7 @@
 **Visa Genius X** is an AI-powered Visa Application Assistant that simplifies the daunting task of visa documentation and eligibility assessment. By leveraging advanced computer vision and Large Language Models (Google Gemini), it analyzes user profiles and uploaded documents (like passports and financial records) to provide a "Visa Success Probability" score, identify risks, and offer actionable insights.
 
 ![Visa Genius X Preview](screenshots/app-preview.png)
-*(Replace with actual screenshot link)*
+
 
 ## 🚀 Features
 
